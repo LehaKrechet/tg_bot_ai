@@ -1,23 +1,43 @@
 import requests
 import json
+import base64
 from api_key import AI_api_token
 
 
 API_KEY = AI_api_token # внутри скобок свой апи ключ отсюда https://openrouter.ai/settings/keys
 MODEL = "deepseek/deepseek-r1"
 
+def encode_file(file_path):
+    try:
+        with open(file_path, 'rb') as file:
+            file_content = file.read()
+            return base64.b64encode(file_content).decode('utf-8')
+    except Exception as e:
+        print(f"Ошибка при чтении файла: {e}")
+        return None
+    
 def process_content(content):
     return content.replace('<think>', '').replace('</think>', '')
 
-def chat_stream(prompt):
+def chat_stream(prompt, file_path):
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
-    
+    messages = [{"role": "user", "content": prompt}]
+
+    # Если указан файл, добавляем его
+    if file_path:
+        file_content = encode_file(file_path)
+        if file_content:
+            messages[0]["files"] = [{
+                "type": "text/plain",  # измените на соответствующий MIME-тип
+                "content": file_content
+            }]
+    # message.append([{"role": "user", "content": prompt}])
     data = {
         "model": MODEL,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": messages,
         "stream": True
     }
 
