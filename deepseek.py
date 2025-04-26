@@ -1,31 +1,13 @@
-import requests
-from api_key import AI_api_token
+from dsk.api import DeepSeekAPI
 
-TOKEN = AI_api_token
+# Инициализация с вашим токеном авторизации
+api = DeepSeekAPI("Z6QZ+1OTzZIp2XqZDs4qUN+tukCZwy2u5PhLzRuZJE+5DNHLRaF5FwOjTr3yF5Kk")
 
-QWEN_URL = "https://chat.qwenlm.ai/api/chat/completions"
-QWEN_HEADERS = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/237.84.2.178 Safari/537.36"
-}
+# Создание новой чат-сессии
+chat_id = api.create_chat_session()
 
-messages = [
-    {"role": "user", "content": "Привет!", "extra": {}, "chat_type": "t2t"},
-]
-
-payload = {
-    "chat_type": "t2t",
-    "messages": messages,
-    "model": "qwen-max-latest",
-    "stream": False
-}
-
-response = requests.post(QWEN_URL, headers=QWEN_HEADERS, json=payload)
-
-if response.status_code == 200:
-    result = response.json()
-    print("Ответ от нейросети:", result["choices"][0]["message"]["content"])
-else:
-    print(f"Ошибка при отправке запроса: {response.status_code}")
-    print("Текст ошибки:", response.text)
+# Простой чат-комплешн
+prompt = "Что такое Python?"
+for chunk in api.chat_completion(chat_id, prompt):
+    if chunk['type'] == 'text':
+        print(chunk['content'], end='', flush=True)
