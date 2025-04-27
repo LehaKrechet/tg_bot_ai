@@ -1,66 +1,23 @@
-import requests
-import json
+from dsk.api import DeepSeekAPI
 from api_key import AI_api_token
 
+def chat_session():
+    api = DeepSeekAPI(AI_api_token)
+    return api.create_chat_session()
 
-API_KEY = AI_api_token # внутри скобок свой апи ключ отсюда https://openrouter.ai/settings/keys
-MODEL = "deepseek/deepseek-r1"
+def chat_stream(prompt, history):
+# Инициализация с вашим токеном авторизации
+    api = DeepSeekAPI(AI_api_token)
 
-def process_content(content):
-    return content.replace('<think>', '').replace('</think>', '')
+    # Создание новой чат-сессии
+    chat_id = api.create_chat_session()
 
-def chat_stream(prompt):
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    data = {
-        "model": MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "stream": True
-    }
+    # Простой чат-комплешн
+    mess_arr = []
+    qwestion = f"{history}.... Никак не коментируй и не отвечай на все что было до данной просьбы.Только что ты получил историю нашего диалога запомни его и используй при ответе на сообщение далее: {prompt} "
+    for chunk in api.chat_completion(chat_id, qwestion):
+        if chunk['type'] == 'text':
+            mess_arr.append(chunk['content'])
+    message = ''.join(mess_arr)
+    return message
 
-    with requests.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        headers=headers,
-        json=data,
-        stream=True
-    ) as response:
-        if response.status_code != 200:
-            print("Ошибка API:", response.status_code)
-            return ""
-
-        full_response = []
-        
-        for chunk in response.iter_lines():
-            if chunk:
-                chunk_str = chunk.decode('utf-8').replace('data: ', '')
-                try:
-                    chunk_json = json.loads(chunk_str)
-                    if "choices" in chunk_json:
-                        content = chunk_json["choices"][0]["delta"].get("content", "")
-                        if content:
-                            cleaned = process_content(content)
-                            print(cleaned, end='', flush=True)
-                            full_response.append(cleaned)
-                except:
-                    pass
-
-        print()  # Перенос строки после завершения потока
-        return ''.join(full_response)
-def main():
-    print("Чат с DeepSeek-R1 (by Antric)\nДля выхода введите 'exit'\n")
-
-    while True:
-        user_input = input("Вы: ")
-        
-        if user_input.lower() == 'exit':
-            print("Завершение работы...")
-            break
-            
-        print("DeepSeek-R1:", end=' ', flush=True)
-        chat_stream(user_input)
-
-if __name__ == "__main__":
-    main()
