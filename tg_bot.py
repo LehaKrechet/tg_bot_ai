@@ -4,7 +4,8 @@ import logging
 import sys
 import deepseek 
 import file_worker
-from api_key import AI_api_token
+from datetime import datetime
+
 
 from aiogram import Bot, Dispatcher, html
 from aiogram.client.default import DefaultBotProperties
@@ -14,7 +15,7 @@ from aiogram.types import Message
 
 
 TOKEN = tg_api_token
-
+admin_name = 'Alexey Krechetov'
 
 
 dp = Dispatcher()
@@ -24,7 +25,14 @@ dp = Dispatcher()
 async def command_start_handler(message: Message) -> None:
 
     await message.answer(f"Hello, {html.bold(message.from_user.full_name)}!")
-    file_worker.file_writer_personal(message.from_user.full_name, "/start", f"Hello, {html.bold(message.from_user.full_name)}!")
+    user_name = message.from_user.full_name
+    group_name = message.chat.full_name
+
+    if user_name != group_name:
+        file_worker.file_writer_group(group_name, '', "Начало", datetime.now())
+    else:
+        file_worker.file_writer_personal(message.from_user.full_name, "Начало", datetime.now())
+    file_worker.add_user_json(message.from_user.full_name)
 
 @dp.message(Command("service"))
 async def service_info(message: Message):
@@ -33,9 +41,43 @@ async def service_info(message: Message):
 Chat id: {message.chat.id}\n
 User full_name: {message.from_user.full_name}\n
 User id: {message.from_user.id}""")
+    
+
+@dp.message(Command("status"))
+async def status_info(message: Message):
+
+    version = file_worker.open_json("status.json")["version"]
+    status = file_worker.open_json("status.json")["status"]
+    users = ' '.join(file_worker.open_json("status.json")["users"])
+
+    await message.answer(f"Version: {version}\nStatus: {status}\nUsers: {users}")
+
+@dp.message(Command("clear_history"))
+async def status_info(message: Message):
+    global admin_name
+    user_name = message.from_user.full_name
+    if user_name == admin_name:
+        group_name = message.chat.full_name
+        if user_name != group_name:
+            file_name = group_name
+        else:
+            file_name = f"{user_name}_individual"
+        file_worker.clear_file(file_name)
+        await message.answer("Succesful")
+    else:
+        await message.answer("You not admin")
+
+@dp.message(Command("clear_list_user"))
+async def status_info(message: Message):
+    global admin_name
+    if message.from_user.full_name == admin_name:
+        file_worker.clear_user_json()
+        await message.answer("Succesful")
+    else:
+        await message.answer("You not admin")
 
 @dp.message()
-async def echo_handler(message: Message) -> None:
+async def AI(message: Message) -> None:
     try:
 
         user_name = message.from_user.full_name
@@ -43,7 +85,6 @@ async def echo_handler(message: Message) -> None:
 
         if user_name != group_name:
             history_name = group_name
-            file_worker.file_writer_group(group_name, user_name, message.text, '')
         else:
             history_name = f"{user_name}_individual"
 
