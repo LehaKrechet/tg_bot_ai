@@ -1,1 +1,0 @@
-open('history/session_Alexey Krechetov_individual_2025-04-28.txt', 'w').close
