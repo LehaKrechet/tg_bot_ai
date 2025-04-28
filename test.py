@@ -1,3 +1,1 @@
-import deepseek
-
-deepseek.chat_stream('Посчитай', '/home/krechet/home/python/tg_bot_ai/test.txt')
+open('history/session_Alexey Krechetov_individual_2025-04-28.txt', 'w').close
